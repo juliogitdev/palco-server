@@ -1,0 +1,7 @@
+{
+  "_comentario": "Mapa presenteId -> acao. Ajuste os IDs conforme os presentes do TikTok. Presente ausente cai na acao 'padrao'.",
+  "padrao": { "acao": "dancinha_padrao", "efeito": "nenhum", "duracao": 6 },
+  "5655": { "acao": "dancinha_padrao", "efeito": "nenhum", "duracao": 6 },
+  "5827": { "acao": "dancinha_grande", "efeito": "brilho", "duracao": 10 },
+  "6064": { "acao": "entrada_epica", "efeito": "fogos", "duracao": 15 }
+}
