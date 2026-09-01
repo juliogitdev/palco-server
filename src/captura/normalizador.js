@@ -1,58 +1,90 @@
 // src/captura/normalizador.js
 
+function limparNomeParaRoblox(texto) {
+  if (!texto) return 'Convidado';
+
+  // 1. Decompõe caracteres decorativos/matemáticos em letras padrão
+  let limpo = String(texto).normalize('NFKD');
+
+  // 2. Remove caracteres invisíveis ou variações de fontes não suportadas no Roblox
+  limpo = limpo.replace(/[^\p{L}\p{N}\p{P}\p{Z}\p{Emoji}]/gu, '');
+
+  // 3. Remove espaços extras
+  limpo = limpo.trim();
+
+  return limpo.length > 0 ? limpo : 'Convidado';
+}
+
 function extrairInfoUsuario(dados) {
-  const usuario =
+  const usuarioCru =
     dados.uniqueId ??
     dados.user?.uniqueId ??
     dados.user?.displayId ??
     dados.userId ??
-    'desconhecido';
+    'Convidado';
 
-  const apelido =
+  const apelidoCru =
     dados.nickname ??
     dados.user?.nickname ??
-    (usuario !== 'desconhecido' ? usuario : 'Alguem');
-
-  return { usuario, apelido };
-}
-
-export function normalizarPresente(dados) {
-  const { usuario, apelido } = extrairInfoUsuario(dados);
-
-  const valorUnitario =
-    dados.diamondCount ??
-    dados.diamonds ??
-    dados.gift?.diamondCount ??
-    (Number(dados.giftId) === 5655 ? 1 : 0);
-
-  const presenteNome =
-    dados.giftName ??
-    dados.gift?.name ??
-    (Number(dados.giftId) === 5655 ? 'Rosa' : String(dados.giftId));
-
-  const quantidade = dados.repeatCount ?? dados.gift?.repeatCount ?? 1;
+    dados.user?.nickName ??
+    usuarioCru;
 
   return {
-    tipo: 'presente',
-    usuario,
-    apelido,
-    presenteId: Number(dados.giftId) || dados.giftId,
-    presenteNome,
-    valorMoedas: valorUnitario,
-    quantidade,
-    timestamp: Date.now(),
+    usuario: limparNomeParaRoblox(usuarioCru),
+    apelido: limparNomeParaRoblox(apelidoCru),
   };
 }
 
-export function normalizarSimples(tipo, dados) {
-  const { usuario, apelido } = extrairInfoUsuario(dados);
+export function normalizarEvento(tipo, dados) {
+  const infoUsuario = extrairInfoUsuario(dados);
+
+  if (tipo === 'presente') {
+    return {
+      tipo: 'presente',
+      ...infoUsuario,
+      presenteId: dados.giftId ?? dados.gift?.id,
+      presenteNome: dados.giftName ?? dados.gift?.name ?? 'Presente',
+      valorMoedas: dados.diamondCount ?? dados.gift?.diamondCount ?? 1,
+      quantidade: dados.repeatCount ?? dados.count ?? 1,
+      timestamp: Date.now(),
+    };
+  }
+
+  if (tipo === 'like') {
+    const quantidadeLikes =
+      dados.likeCount ??
+      dados.count ??
+      dados.likes ??
+      1;
+
+    return {
+      tipo: 'like',
+      ...infoUsuario,
+      quantidade: Math.max(1, Number(quantidadeLikes)),
+      timestamp: Date.now(),
+    };
+  }
+
+  if (tipo === 'comentario') {
+    return {
+      tipo: 'comentario',
+      ...infoUsuario,
+      comentario: dados.comment ?? dados.text ?? '',
+      timestamp: Date.now(),
+    };
+  }
+
+  if (tipo === 'follow') {
+    return {
+      tipo: 'follow',
+      ...infoUsuario,
+      timestamp: Date.now(),
+    };
+  }
 
   return {
     tipo,
-    usuario,
-    apelido,
-    valorMoedas: 0,
-    quantidade: 1,
+    ...infoUsuario,
     timestamp: Date.now(),
   };
 }

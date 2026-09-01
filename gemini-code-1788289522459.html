@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Controle Live - TikTok & Roblox</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --purple: #a855f7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); padding: 20px; }
+    
+    .container { max-width: 1560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    
+    /* Configurações da API */
+    .config-bar {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .config-bar input {
+      background-color: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    /* Barra de Estatísticas Rápidas (KPIs) */
+    .kpi-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+    .kpi-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-title { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .kpi-value { font-size: 20px; font-weight: bold; color: var(--text); }
+
+    /* Grid Principal */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      gap: 16px;
+    }
+
+    @media (max-width: 1200px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      height: 680px;
+    }
+
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: rgba(15, 23, 42, 0.4);
+    }
+
+    .card-body {
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Barra de Filtros do Feed */
+    .filter-section {
+      padding: 10px 14px;
+      background-color: #0b1120;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .filter-section select, .filter-section input {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    /* Itens de Eventos */
+    .event-item {
+      background-color: #0b1120;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-item.presente { border-left-color: var(--accent); }
+    .event-item.like { border-left-color: var(--danger); }
+    .event-item.follow { border-left-color: var(--success); }
+    .event-item.comentario { border-left-color: var(--primary); }
+
+    .event-header { display: flex; justify-content: space-between; font-weight: bold; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .badge-presente { background-color: rgba(245, 158, 11, 0.2); color: var(--accent); }
+    .badge-like { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-comentario { background-color: rgba(56, 189, 248, 0.2); color: var(--primary); }
+    .badge-follow { background-color: rgba(16, 185, 129, 0.2); color: var(--success); }
+
+    /* Ranking */
+    .ranking-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #0b1120;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .ranking-pos { font-weight: bold; width: 24px; color: var(--accent); }
+
+    /* Formulários e Botões */
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .form-group input, .form-group select {
+      background-color: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: #0f172a;
+      font-weight: bold;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button.btn-sec { background-color: #334155; color: var(--text); }
+    button.btn-danger { background-color: var(--danger); color: white; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- Configurações de Conexão -->
+  <div class="config-bar">
+    <label><strong>URL da API:</strong></label>
+    <input type="text" id="api-url" value="http://localhost:3000" style="width: 200px;">
+    
+    <label><strong>API Token:</strong></label>
+    <input type="text" id="api-token" value="crie_qualquer_senha_secreta_aqui_exemplo_123" style="width: 300px;">
+    
+    <button onclick="salvarConfig()">Reconectar</button>
+    <span id="status-conexao" style="margin-left: auto; font-size: 13px; color: var(--success);">🟢 Sincronizado</span>
+  </div>
+
+  <!-- KPIs de Métricas da Sessão -->
+  <div class="kpi-bar">
+    <div class="kpi-card">
+      <span class="kpi-title">🎁 Presentes</span>
+      <span class="kpi-value" id="kpi-gifts" style="color: var(--accent);">0</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">❤️ Likes Recebidos</span>
+      <span class="kpi-value" id="kpi-likes" style="color: var(--danger);">0</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">💬 Comentários</span>
+      <span class="kpi-value" id="kpi-comments" style="color: var(--primary);">0</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">👤 Novos Follows</span>
+      <span class="kpi-value" id="kpi-follows" style="color: var(--success);">0</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">⚡ Aura Gerada</span>
+      <span class="kpi-value" id="kpi-aura" style="color: var(--purple);">0</span>
+    </div>
+  </div>
+
+  <!-- Grid Principal -->
+  <div class="dashboard-grid">
+    
+    <!-- Coluna 1: Simulador Manual -->
+    <div class="card">
+      <div class="card-header">
+        <span>⚡ Testar / Simular Ação</span>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Tipo de Interação</label>
+          <select id="sim-tipo" onchange="alternarCamposSimulacao()">
+            <option value="like">Like (Curtidas)</option>
+            <option value="comentario">Comentário</option>
+            <option value="follow">Follow (Seguidor)</option>
+            <option value="presente">Presente (Gift)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Nome do Usuário (@)</label>
+          <input type="text" id="sim-usuario" value="jogador_vip">
+        </div>
+
+        <div class="form-group">
+          <label>Apelido / Nickname</label>
+          <input type="text" id="sim-apelido" value="Mestre da Live">
+        </div>
+
+        <div class="form-group" id="grupo-comentario" style="display: none;">
+          <label>Texto do Comentário</label>
+          <input type="text" id="sim-comentario" value="Bora bater a meta!">
+        </div>
+
+        <div class="form-group" id="grupo-quantidade">
+          <label>Quantidade de Likes / Presentes</label>
+          <input type="number" id="sim-quantidade" value="10" min="1">
+        </div>
+
+        <div class="form-group" id="grupo-presente" style="display: none;">
+          <label>Nome do Presente</label>
+          <input type="text" id="sim-presente-nome" value="Rosa">
+          
+          <label style="margin-top: 4px;">Valor em Moedas (Por unidade)</label>
+          <input type="number" id="sim-moedas" value="1" min="1">
+        </div>
+
+        <button onclick="enviarSimulacao()" style="margin-top: auto;">Disparar Evento</button>
+      </div>
+    </div>
+
+    <!-- Coluna 2: Feed com Filtros Completos -->
+    <div class="card">
+      <div class="card-header">
+        <span>📥 Feed de Eventos (/events)</span>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-pause" class="btn-sec" onclick="alternarPausaFeed()" style="font-size: 11px;">⏸ Pausar Feed</button>
+          <button class="btn-sec" onclick="exportarEventosJSON()" style="font-size: 11px;">💾 Exportar JSON</button>
+          <button class="btn-danger" onclick="limparLogs()" style="font-size: 11px;">Limpar</button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros Avançados -->
+      <div class="filter-section">
+        <select id="filtro-tipo" onchange="aplicarFiltros()">
+          <option value="todos">Todos os Eventos</option>
+          <option value="presente">🎁 Apenas Presentes</option>
+          <option value="like">❤️ Apenas Likes</option>
+          <option value="comentario">💬 Apenas Comentários</option>
+          <option value="follow">👤 Apenas Follows</option>
+        </select>
+
+        <!-- Filtro condicional de moedas para presentes -->
+        <select id="filtro-moedas-presente" onchange="aplicarFiltros()" style="display: none;">
+          <option value="todas">Qualquer Valor</option>
+          <option value="1-9">1 a 9 Moedas (Pequenos)</option>
+          <option value="10-99">10 a 99 Moedas (Médios)</option>
+          <option value="100-999">100 a 999 Moedas (Grandes)</option>
+          <option value="1000+">1000+ Moedas (Épicos)</option>
+        </select>
+
+        <input type="number" id="filtro-aura-min" placeholder="Aura Mín: 0" style="width: 100px;" oninput="aplicarFiltros()">
+        <input type="text" id="filtro-busca" placeholder="🔍 Buscar @usuário ou texto..." style="flex: 1; min-width: 160px;" oninput="aplicarFiltros()">
+      </div>
+
+      <div class="card-body" id="lista-eventos">
+        <!-- Eventos renderizados dinamicamente -->
+      </div>
+    </div>
+
+    <!-- Coluna 3: Ranking de Aura -->
+    <div class="card">
+      <div class="card-header">
+        <span>🏆 Ranking de Aura (/ranking)</span>
+        <span id="tempo-ciclo" style="font-size: 12px; color: var(--text-muted);">--:--</span>
+      </div>
+      <div class="card-body" id="lista-ranking">
+        <!-- Ranking atualizado dinamicamente -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let cursor = 0;
+  let pollingInterval = null;
+  let feedPausado = false;
+  
+  // Armazena todos os eventos em memória para filtrar sem perder dados
+  let historicoEventos = [];
+
+  // KPIs
+  let kpiStats = { gifts: 0, likes: 0, comments: 0, follows: 0, aura: 0 };
+
+  function salvarConfig() {
+    cursor = 0;
+    historicoEventos = [];
+    limparLogs();
+    iniciarMonitoramento();
+  }
+
+  function alternarCamposSimulacao() {
+    const tipo = document.getElementById('sim-tipo').value;
+    document.getElementById('grupo-presente').style.display = tipo === 'presente' ? 'flex' : 'none';
+    document.getElementById('grupo-quantidade').style.display = (tipo === 'presente' || tipo === 'like') ? 'flex' : 'none';
+    document.getElementById('grupo-comentario').style.display = tipo === 'comentario' ? 'flex' : 'none';
+  }
+
+  function alternarPausaFeed() {
+    feedPausado = !feedPausado;
+    const btn = document.getElementById('btn-pause');
+    btn.innerText = feedPausado ? '▶ Retomar Feed' : '⏸ Pausar Feed';
+    btn.style.backgroundColor = feedPausado ? 'var(--accent)' : '#334155';
+    btn.style.color = feedPausado ? '#0f172a' : 'var(--text)';
+  }
+
+  async function consultarEventos() {
+    const urlBase = document.getElementById('api-url').value;
+    const token = document.getElementById('api-token').value;
+    const statusEl = document.getElementById('status-conexao');
+
+    try {
+      const resEventos = await fetch(`${urlBase}/events?desde=${cursor}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (resEventos.ok) {
+        const dados = await resEventos.json();
+        cursor = dados.cursor;
+        statusEl.innerHTML = '🟢 Conectado';
+        statusEl.style.color = 'var(--success)';
+
+        if (dados.eventos && dados.eventos.length > 0) {
+          dados.eventos.forEach(evento => {
+            historicoEventos.unshift(evento);
+            atualizarKPIs(evento);
+          });
+          if (!feedPausado) {
+            aplicarFiltros();
+          }
+        }
+      } else {
+        statusEl.innerHTML = '🔴 Erro de Autenticação (' + resEventos.status + ')';
+        statusEl.style.color = 'var(--danger)';
+      }
+
+      const resRanking = await fetch(`${urlBase}/ranking`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (resRanking.ok) {
+        const dadosRanking = await resRanking.json();
+        renderizarRanking(dadosRanking);
+      }
+
+    } catch (err) {
+      statusEl.innerHTML = '🔴 Servidor Offline';
+      statusEl.style.color = 'var(--danger)';
+    }
+  }
+
+  function atualizarKPIs(evt) {
+    if (evt.tipo === 'presente') kpiStats.gifts += (evt.quantidade || 1);
+    if (evt.tipo === 'like') kpiStats.likes += (evt.quantidade || 1);
+    if (evt.tipo === 'comentario') kpiStats.comments += 1;
+    if (evt.tipo === 'follow') kpiStats.follows += 1;
+    kpiStats.aura += (evt.auraGanha || 0);
+
+    document.getElementById('kpi-gifts').innerText = kpiStats.gifts.toLocaleString();
+    document.getElementById('kpi-likes').innerText = kpiStats.likes.toLocaleString();
+    document.getElementById('kpi-comments').innerText = kpiStats.comments.toLocaleString();
+    document.getElementById('kpi-follows').innerText = kpiStats.follows.toLocaleString();
+    document.getElementById('kpi-aura').innerText = kpiStats.aura.toLocaleString();
+  }
+
+  function aplicarFiltros() {
+    const tipoFiltro = document.getElementById('filtro-tipo').value;
+    const moedasFiltro = document.getElementById('filtro-moedas-presente').value;
+    const busca = document.getElementById('filtro-busca').value.toLowerCase().trim();
+    const auraMin = parseInt(document.getElementById('filtro-aura-min').value, 10) || 0;
+
+    // Exibe ou oculta o seletor de moedas
+    document.getElementById('filtro-moedas-presente').style.display = tipoFiltro === 'presente' ? 'inline-block' : 'none';
+
+    const lista = document.getElementById('lista-eventos');
+    lista.innerHTML = '';
+
+    const filtrados = historicoEventos.filter(evt => {
+      // 1. Filtro por Tipo
+      if (tipoFiltro !== 'todos' && evt.tipo !== tipoFiltro) return false;
+
+      // 2. Filtro por Valor do Gift (Moedas)
+      if (tipoFiltro === 'presente' && moedasFiltro !== 'todas') {
+        const totalMoedas = (evt.valorMoedas || 1) * (evt.quantidade || 1);
+        if (moedasFiltro === '1-9' && (totalMoedas < 1 || totalMoedas > 9)) return false;
+        if (moedasFiltro === '10-99' && (totalMoedas < 10 || totalMoedas > 99)) return false;
+        if (moedasFiltro === '100-999' && (totalMoedas < 100 || totalMoedas > 999)) return false;
+        if (moedasFiltro === '1000+' && totalMoedas < 1000) return false;
+      }
+
+      // 3. Filtro por Aura Mínima
+      if (auraMin > 0 && (evt.auraGanha || 0) < auraMin) return false;
+
+      // 4. Busca por Texto (usuário, apelido ou comentário)
+      if (busca) {
+        const u = (evt.usuario || '').toLowerCase();
+        const a = (evt.apelido || '').toLowerCase();
+        const c = (evt.comentario || '').toLowerCase();
+        const p = (evt.presenteNome || '').toLowerCase();
+        if (!u.includes(busca) && !a.includes(busca) && !c.includes(busca) && !p.includes(busca)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (filtrados.length === 0) {
+      lista.innerHTML = '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px;">Nenhum evento corresponde aos filtros.</div>';
+      return;
+    }
+
+    // Renderiza até 80 itens visíveis para manter a página rápida
+    filtrados.slice(0, 80).forEach(evt => {
+      const item = document.createElement('div');
+      item.className = `event-item ${evt.tipo}`;
+
+      const hora = new Date(evt.timestamp || Date.now()).toLocaleTimeString();
+      let detalhe = '';
+
+      if (evt.tipo === 'like') {
+        detalhe = `Rajada de <strong>+${evt.quantidade}</strong> likes`;
+      } else if (evt.tipo === 'presente') {
+        const totalMoedas = (evt.valorMoedas || 1) * (evt.quantidade || 1);
+        detalhe = `Enviou <strong>${evt.quantidade}x ${evt.presenteNome}</strong> (Total: 🪙 ${totalMoedas} moedas)`;
+      } else if (evt.tipo === 'comentario') {
+        detalhe = `"${evt.comentario || ''}"`;
+      } else if (evt.tipo === 'follow') {
+        detalhe = `Começou a seguir a live`;
+      }
+
+      item.innerHTML = `
+        <div class="event-header">
+          <span>${evt.apelido} <span style="color:var(--text-muted); font-weight:normal; font-size:12px;">(@${evt.usuario})</span></span>
+          <span class="badge badge-${evt.tipo}">${evt.tipo}</span>
+        </div>
+        <div>${detalhe}</div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
+          <span>⚡ Aura Total: <strong>${evt.auraTotal || 0}</strong> (+${evt.auraGanha || 0})</span>
+          <span>${hora} | #${evt.id || 'sim'}</span>
+        </div>
+      `;
+      lista.appendChild(item);
+    });
+  }
+
+  function renderizarRanking(dados) {
+    const lista = document.getElementById('lista-ranking');
+    const tempoEl = document.getElementById('tempo-ciclo');
+
+    const min = Math.floor((dados.tempoRestante || 0) / 60);
+    const seg = (dados.tempoRestante || 0) % 60;
+    tempoEl.innerText = `Reset em: ${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
+
+    lista.innerHTML = '';
+    if (!dados.top || dados.top.length === 0) {
+      lista.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Nenhum usuário pontuou ainda.</div>';
+      return;
+    }
+
+    dados.top.forEach((user, index) => {
+      const item = document.createElement('div');
+      item.className = 'ranking-item';
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="ranking-pos">#${index + 1}</span>
+          <strong>${user.apelido}</strong>
+        </div>
+        <span style="color:var(--accent); font-weight:bold;">⚡ ${user.aura} Aura</span>
+      `;
+      lista.appendChild(item);
+    });
+  }
+
+  async function enviarSimulacao() {
+    const urlBase = document.getElementById('api-url').value;
+    const token = document.getElementById('api-token').value;
+
+    const payload = {
+      tipo: document.getElementById('sim-tipo').value,
+      usuario: document.getElementById('sim-usuario').value,
+      apelido: document.getElementById('sim-apelido').value,
+      comentario: document.getElementById('sim-comentario').value,
+      quantidade: parseInt(document.getElementById('sim-quantidade').value, 10) || 1,
+      valorMoedas: parseInt(document.getElementById('sim-moedas').value, 10) || 1,
+      presenteNome: document.getElementById('sim-presente-nome').value,
+    };
+
+    try {
+      await fetch(`${urlBase}/events/simular`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      alert('Erro ao enviar simulação.');
+    }
+  }
+
+  function limparLogs() {
+    historicoEventos = [];
+    document.getElementById('lista-eventos').innerHTML = '';
+  }
+
+  function exportarEventosJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historicoEventos, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `eventos_live_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  function iniciarMonitoramento() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    consultarEventos();
+    pollingInterval = setInterval(consultarEventos, 1000);
+  }
+
+  iniciarMonitoramento();
+</script>
+</body>
+</html>
