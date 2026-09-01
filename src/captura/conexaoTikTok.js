@@ -1,42 +1,51 @@
-import { TikTokLiveConnection, WebcastEvent } from 'tiktok-live-connector';
+// src/captura/conexaoTikTok.js
+import * as TikTool from '@tiktool/live';
 import { config } from '../config.js';
 import { log } from '../util/logger.js';
 import { normalizarPresente, normalizarSimples } from './normalizador.js';
 
-// Conecta na live e chama `aoReceberEvento(evento)` para cada evento ja normalizado.
+// src/captura/conexaoTikTok.js
 export function iniciarCaptura(aoReceberEvento) {
-  const conexao = new TikTokLiveConnection(config.tiktokUsername, {
-    // Se tiver chave da Euler Stream, descomente para aumentar os limites:
-    // signApiKey: config.eulerApiKey || undefined,
+  const Client =
+    TikTool.TikTokLive ||
+    TikTool.TikToolLive ||
+    TikTool.Client ||
+    TikTool.default ||
+    TikTool;
+
+  const conexao = new Client({
+    apiKey: config.tikToolApiKey,
+    uniqueId: config.tiktokUsername, // <-- Troque username por uniqueId
   });
 
-  conexao.on(WebcastEvent.GIFT, (dados) => {
-    // Presentes "streakaveis" (rosa, etc.) mandam varios eventos parciais enquanto a
-    // pessoa segura o envio. So contamos quando o streak termina (repeatEnd),
-    // senao a mesma rosa seria contada varias vezes.
-    const ehStreak = dados.giftType === 1;
-    if (ehStreak && !dados.repeatEnd) return;
+
+  // Evento de presentes
+  conexao.on('gift', (dados) => {
+    const ehStreak = dados.giftType === 1 || dados.repeatEnd !== undefined;
+    if (ehStreak && dados.repeatEnd === false) return;
     aoReceberEvento(normalizarPresente(dados));
   });
 
-  conexao.on(WebcastEvent.LIKE, (d) => aoReceberEvento(normalizarSimples('like', d)));
-  conexao.on(WebcastEvent.FOLLOW, (d) => aoReceberEvento(normalizarSimples('follow', d)));
-  conexao.on(WebcastEvent.SHARE, (d) => aoReceberEvento(normalizarSimples('share', d)));
-  conexao.on(WebcastEvent.CHAT, (d) =>
-    aoReceberEvento({ ...normalizarSimples('comentario', d), texto: d.comment }),
+  // Eventos simples
+  conexao.on('like', (d) => aoReceberEvento(normalizarSimples('like', d)));
+  conexao.on('follow', (d) => aoReceberEvento(normalizarSimples('follow', d)));
+  conexao.on('share', (d) => aoReceberEvento(normalizarSimples('share', d)));
+  conexao.on('chat', (d) =>
+    aoReceberEvento({ ...normalizarSimples('comentario', d), texto: d.comment || d.text }),
   );
 
-  conexao.connect()
-    .then((estado) => log.info(`Conectado a live (roomId ${estado.roomId})`))
-    .catch((err) => log.erro('Falha ao conectar na live:', err.message));
+  // Conexão inicial
+  conexao
+    .connect()
+    .then((estado) => log.info(`Conectado à live via TikTool (Room ID: ${estado?.roomId || 'OK'})`))
+    .catch((err) => log.erro('Falha ao conectar via TikTool:', err.message));
 
-  // Reconexao simples caso a live caia e volte.
+  // Reconexão em caso de queda
   conexao.on('disconnected', () => {
     log.aviso('Live desconectada. Tentando reconectar em 5s...');
-    setTimeout(
-      () => conexao.connect().catch((e) => log.erro('Reconexao falhou:', e.message)),
-      5000,
-    );
+    setTimeout(() => {
+      conexao.connect().catch((e) => log.erro('Reconexao falhou:', e.message));
+    }, 5000);
   });
 
   return conexao;

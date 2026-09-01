@@ -1,29 +1,56 @@
-// Transforma o evento cru do TikTok-Live-Connector no formato padrao do projeto.
-// Formato do Evento:
-// { tipo, usuario, apelido, presenteId, presenteNome, valorMoedas, quantidade, timestamp }
-//
-// OBS: os nomes dos campos abaixo (giftId, diamondCount, repeatCount, user.uniqueId,
-// user.nickname) seguem o schema da lib. Se algum vier vazio, confira a doc da versao
-// instalada — o schema v3 renomeou alguns campos.
+// src/captura/normalizador.js
+
+function extrairInfoUsuario(dados) {
+  const usuario =
+    dados.uniqueId ??
+    dados.user?.uniqueId ??
+    dados.user?.displayId ??
+    dados.userId ??
+    'desconhecido';
+
+  const apelido =
+    dados.nickname ??
+    dados.user?.nickname ??
+    (usuario !== 'desconhecido' ? usuario : 'Alguem');
+
+  return { usuario, apelido };
+}
 
 export function normalizarPresente(dados) {
+  const { usuario, apelido } = extrairInfoUsuario(dados);
+
+  const valorUnitario =
+    dados.diamondCount ??
+    dados.diamonds ??
+    dados.gift?.diamondCount ??
+    (Number(dados.giftId) === 5655 ? 1 : 0);
+
+  const presenteNome =
+    dados.giftName ??
+    dados.gift?.name ??
+    (Number(dados.giftId) === 5655 ? 'Rosa' : String(dados.giftId));
+
+  const quantidade = dados.repeatCount ?? dados.gift?.repeatCount ?? 1;
+
   return {
     tipo: 'presente',
-    usuario: dados.user?.uniqueId ?? 'desconhecido',
-    apelido: dados.user?.nickname ?? dados.user?.uniqueId ?? 'Alguem',
-    presenteId: dados.giftId,
-    presenteNome: dados.giftName ?? String(dados.giftId),
-    valorMoedas: dados.diamondCount ?? 0,
-    quantidade: dados.repeatCount ?? 1,
+    usuario,
+    apelido,
+    presenteId: Number(dados.giftId) || dados.giftId,
+    presenteNome,
+    valorMoedas: valorUnitario,
+    quantidade,
     timestamp: Date.now(),
   };
 }
 
 export function normalizarSimples(tipo, dados) {
+  const { usuario, apelido } = extrairInfoUsuario(dados);
+
   return {
     tipo,
-    usuario: dados.user?.uniqueId ?? 'desconhecido',
-    apelido: dados.user?.nickname ?? dados.user?.uniqueId ?? 'Alguem',
+    usuario,
+    apelido,
     valorMoedas: 0,
     quantidade: 1,
     timestamp: Date.now(),

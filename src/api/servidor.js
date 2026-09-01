@@ -15,7 +15,6 @@ export function criarServidor({ fila, ranking }) {
   // Checagem publica de que o servidor esta no ar (sem token).
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
-  // Da aqui pra baixo, tudo exige o token.
   app.use(autenticar);
   app.use(criarRotas({ fila, ranking }));
 
