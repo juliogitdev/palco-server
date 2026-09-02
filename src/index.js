@@ -33,18 +33,22 @@ iniciarCaptura((evento) => {
   let auraGanha = 0;
 
   if (evento.tipo === 'presente') {
-    auraGanha = (evento.valorMoedas || 1) * (evento.quantidade || 1) * 100;
+    // 1 moeda = 5.000 de aura (se a rosa for 1 moeda, dá 5.000)
+    const moedasUnitarias = evento.valorMoedas || 1;
+    const quantidade = evento.quantidade || 1;
+    auraGanha = moedasUnitarias * quantidade * 5000;
   } else if (evento.tipo === 'like') {
-    // Multiplica 1 ponto por cada curtida computada na rajada
+    // 1 like = 1 de aura
     const qtd = evento.quantidade || 1;
     auraGanha = qtd * 1;
   } else if (evento.tipo === 'comentario') {
-    auraGanha = 5;
+    // 1 comentário = 250 de aura
+    auraGanha = 250;
   } else if (evento.tipo === 'follow') {
-    auraGanha = 20;
+    // 1 seguidor = 2000 de aura
+    auraGanha = 2000;
   }
 
-  // Registra e acumula no ranking
   const auraTotalAcumulada = ranking.registrar(evento.usuario, evento.apelido, auraGanha);
 
   fila.adicionar({
