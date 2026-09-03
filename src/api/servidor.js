@@ -129,5 +129,14 @@ export function criarServidor({
     }
   });
 
+  app.post('/admin/fila/limpar', autenticarToken, (_req, res) => {
+    try {
+      const resultado = fila.limpar();
+      res.json({ sucesso: true, ...resultado });
+    } catch (err) {
+      res.status(500).json({ sucesso: false, erro: err.message });
+    }
+  });
+
   return app;
 }

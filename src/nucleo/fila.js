@@ -31,5 +31,11 @@ export function criarFila(tamanhoMax = 500) {
         }
       };
     },
+
+    limpar() {
+      const totalDescartado = eventos.length;
+      eventos = [];
+      return { limpo: true, descartados: totalDescartado, ultimoSeq: contador };
+    },
   };
 }
