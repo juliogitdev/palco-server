@@ -8,16 +8,17 @@ export const config = {
   tikToolApiKey: process.env.TIKTOOL_API_KEY || '',
   topN: Number(process.env.TOP_N) || 3,
   tamanhoFila: Number(process.env.TAMANHO_FILA) || 500,
+  multiplicadorPadrao: Number(process.env.MULTIPLICADOR_PADRAO) || 1.0,
 };
 
 export function validarConfig() {
   const faltando = [];
-  if (!config.tiktokUsername) faltando.push('TIKTOK_USERNAME');
   if (!config.apiToken) faltando.push('API_TOKEN');
   if (!config.tikToolApiKey) faltando.push('TIKTOOL_API_KEY');
+
   if (faltando.length) {
     throw new Error(
-      `Variaveis faltando: ${faltando.join(', ')}. Copie .env.example para .env e preencha.`,
+      `Variáveis faltando: ${faltando.join(', ')}. Copie .env.example para .env e preencha.`,
     );
   }
 }
