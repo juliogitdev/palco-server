@@ -138,5 +138,25 @@ export function criarServidor({
     }
   });
 
+  // Rota para simulação / mock de interações
+app.post('/admin/simular-evento', (req, res) => {
+  const auth = req.headers.authorization;
+  const token = auth ? auth.replace('Bearer ', '').trim() : '';
+
+  // Valida o API_TOKEN do .env
+  if (token !== (process.env.API_TOKEN || config.apiToken)) {
+    return res.status(401).json({ erro: 'Token inválido' });
+  }
+
+  const evento = req.body;
+  
+  // Envia para o processador de fila de eventos da sua aplicação
+  if (typeof aoReceberEvento === 'function') {
+    aoReceberEvento(evento);
+  }
+
+  return res.json({ sucesso: true, mensagem: 'Evento injetado na fila' });
+});
+
   return app;
 }
