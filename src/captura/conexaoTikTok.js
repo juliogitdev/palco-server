@@ -36,7 +36,6 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
       throw new Error('Username do TikTok inválido.');
     }
 
-    // Se já houver conexão ativa, encerra antes
     await desconectar();
 
     usuarioAlvo = usuarioLimpo;
@@ -61,10 +60,14 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
       log.erro('Erro na conexão do TikTok:', err);
     });
 
+    // EVENTOS CAPTURADOS:
     conexaoAtual.on('chat', (data) => aoReceberEvento(normalizarEvento('comentario', data)));
     conexaoAtual.on('gift', (data) => aoReceberEvento(normalizarEvento('presente', data)));
     conexaoAtual.on('like', (data) => aoReceberEvento(normalizarEvento('like', data)));
     conexaoAtual.on('follow', (data) => aoReceberEvento(normalizarEvento('follow', data)));
+    
+    // 👉 ADICIONADO: Captura quem acabou de entrar na live
+    conexaoAtual.on('member', (data) => aoReceberEvento(normalizarEvento('entrada', data)));
 
     await conexaoAtual.connect();
     return { usuario: usuarioAlvo, status: 'conectando' };
