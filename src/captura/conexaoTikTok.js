@@ -1,4 +1,3 @@
-// src/captura/conexaoTikTok.js
 import * as TikTool from '@tiktool/live';
 import { config } from '../config.js';
 import { log } from '../util/logger.js';
@@ -8,6 +7,8 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
   let conexaoAtual = null;
   let usuarioAlvo = null;
   let conectado = false;
+  let tentarReconectar = false;
+  let timerReconexao = null;
 
   const Client =
     TikTool.TikTokLive ||
@@ -16,6 +17,9 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
     TikTool.default;
 
   async function desconectar() {
+    tentarReconectar = false;
+    if (timerReconexao) clearTimeout(timerReconexao);
+
     if (conexaoAtual) {
       try {
         if (typeof conexaoAtual.disconnect === 'function') {
@@ -39,6 +43,7 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
     await desconectar();
 
     usuarioAlvo = usuarioLimpo;
+    tentarReconectar = true;
     log.info(`Iniciando conexão com @${usuarioAlvo}...`);
 
     conexaoAtual = new Client({
@@ -54,20 +59,25 @@ export function criarGerenciadorTikTok(aoReceberEvento) {
     conexaoAtual.on('disconnected', () => {
       conectado = false;
       log.aviso(`⚠️ Conexão com @${usuarioAlvo} foi encerrada.`);
+      
+      // Reconecta automaticamente após 5 segundos se a desconexão não foi manual
+      if (tentarReconectar && usuarioAlvo) {
+        log.info(`Tentando reconectar em 5 segundos...`);
+        timerReconexao = setTimeout(() => {
+          conectar(usuarioAlvo).catch((e) => log.erro('Falha na reconexão:', e.message));
+        }, 5000);
+      }
     });
 
     conexaoAtual.on('error', (err) => {
-      log.erro('Erro na conexão do TikTok:', err);
+      log.erro('Erro na conexão do TikTok:', err.message || err);
     });
 
-    // EVENTOS CAPTURADOS:
+    // Eventos principais
     conexaoAtual.on('chat', (data) => aoReceberEvento(normalizarEvento('comentario', data)));
     conexaoAtual.on('gift', (data) => aoReceberEvento(normalizarEvento('presente', data)));
     conexaoAtual.on('like', (data) => aoReceberEvento(normalizarEvento('like', data)));
     conexaoAtual.on('follow', (data) => aoReceberEvento(normalizarEvento('follow', data)));
-    
-    // 👉 ADICIONADO: Captura quem acabou de entrar na live
-    conexaoAtual.on('member', (data) => aoReceberEvento(normalizarEvento('entrada', data)));
 
     await conexaoAtual.connect();
     return { usuario: usuarioAlvo, status: 'conectando' };
